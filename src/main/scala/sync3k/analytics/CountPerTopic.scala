@@ -6,6 +6,8 @@ import org.apache.kafka.common.utils.Bytes
 import org.apache.spark.streaming.kafka010.{ ConsumerStrategies, KafkaUtils, LocationStrategies }
 import org.apache.spark.streaming.{ Seconds, StreamingContext }
 import org.apache.spark.{ SparkConf, SparkContext }
+import org.json4s._
+import org.json4s.native.JsonMethods._
 
 object CountPerTopic {
   def main(args: Array[String]): Unit = {
@@ -25,11 +27,17 @@ object CountPerTopic {
         ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG -> (false: java.lang.Boolean)
       )))
 
-    stream.foreachRDD((rdd) => {
+    stream.foreachRDD((rdd, time) => {
       println("Hello! " + rdd)
-      rdd.foreach((rec) => {
-        println(rec)
+      rdd.map((rec) => {
+        // TODO(yiinho): move outside once https://github.com/json4s/json4s/issues/137 is fixed again.
+        implicit val formats: DefaultFormats.type = DefaultFormats
+        ((rec.topic(), (parse(rec.value()) \ "type").extractOrElse[String]("")), rec.value())
       })
+        .countByKey()
+        .foreach {
+          case ((topic, actionType), count) => println(s"[${time.milliseconds}] $topic: $actionType: $count")
+        }
     })
 
     ssc.start()

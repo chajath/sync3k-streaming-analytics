@@ -16,4 +16,6 @@ libraryDependencies += "org.apache.spark" %% "spark-streaming-kafka-0-10" % "2.2
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 
+libraryDependencies += "org.json4s" %% "json4s-native" % "3.5.3"
+
 scalacOptions += "-target:jvm-1.8"
