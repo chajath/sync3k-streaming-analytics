@@ -12,7 +12,7 @@ import org.apache.spark.{ SparkConf, SparkContext }
 import org.json4s._
 import org.json4s.native.JsonMethods._
 
-case class CountRecord(topic: String, actionType: String, count: Int) extends Serializable
+case class CountRecord(timestampMs: Long, topic: String, actionType: String, count: Int) extends Serializable
 
 object CountPerTopic {
   def main(args: Array[String]): Unit = {
@@ -41,7 +41,7 @@ object CountPerTopic {
       })
         .aggregateByKey(0)((x, _) => x + 1, (x, y) => x + y)
         .map({
-          case ((topic, actionType), count) => (time, CountRecord(topic, actionType, count))
+          case ((topic, actionType), count) => (time, CountRecord(time.milliseconds, topic, actionType, count))
         })
         .foreachPartition((counts) => {
           val kafkaTopic = "analytics-count"
