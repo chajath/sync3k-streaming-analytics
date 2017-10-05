@@ -18,4 +18,6 @@ libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 
 libraryDependencies += "org.json4s" %% "json4s-native" % "3.5.3"
 
+libraryDependencies += "org.apache.kafka" % "kafka-clients" % "0.11.0.1"
+
 scalacOptions += "-target:jvm-1.8"
