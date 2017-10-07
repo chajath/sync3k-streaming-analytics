@@ -16,6 +16,21 @@ case class CountRecord(timestampMs: Long, topic: String, actionType: String, cou
 
 object CountPerTopic {
   def main(args: Array[String]): Unit = {
+    case class Config(kafkaServer: String = "localhost:9092") extends Serializable
+
+    val parser = new scopt.OptionParser[Config]("sync3k-streaming-analytics") {
+      head("sync3k-streaming-analytics")
+
+      opt[String]('k', "kafkaServer")
+        .action((x, c) => c.copy(kafkaServer = x))
+        .text("Kafka bootstrap server. Defaults to localhost:9092")
+    }
+
+    val config = parser.parse(args, Config())
+    if (config.isEmpty) {
+      return
+    }
+
     val conf = new SparkConf().setAppName("CountPerTopic").setMaster("local[1]")
     val sc = new SparkContext(conf)
 
@@ -24,7 +39,7 @@ object CountPerTopic {
     val stream = KafkaUtils.createDirectStream(ssc,
       LocationStrategies.PreferConsistent,
       ConsumerStrategies.SubscribePattern[Bytes, String]("^(?!analytics).*".r.pattern, collection.Map[String, Object](
-        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> "localhost:9092",
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> config.get.kafkaServer,
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> "earliest",
         ConsumerConfig.GROUP_ID_CONFIG -> "analyticsId1",
         ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> classOf[StringDeserializer],
@@ -46,7 +61,7 @@ object CountPerTopic {
         .foreachPartition((counts) => {
           val kafkaTopic = "analytics-count"
           val props = new Properties()
-          props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+          props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.get.kafkaServer)
           props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, classOf[StringSerializer].getName)
           props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[StringSerializer].getName)
 
